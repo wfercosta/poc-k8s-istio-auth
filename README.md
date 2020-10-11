@@ -15,7 +15,7 @@
 - [ ] **Install development tools**
   - [ ] Install Kind
   - [ ] Install Helm
-  - [ ] Install istioclt
+  - [ ] Install istioctl
   - [ ] Install Tilt 
 
 - [ ] **Define a initial project structure**

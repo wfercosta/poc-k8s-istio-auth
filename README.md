@@ -9,26 +9,26 @@
 - Helm 3
 - Node.js 12.19. LTS 
 - Tilt Latest
+- Ansible
 
 ## Tasks
 
 - [ ] **Install development tools**
-  - [ ] Install Kind
-  - [ ] Install Helm
-  - [ ] Install istioctl
-  - [ ] Install Tilt 
+  - [x] Install Kind
+  - [x] Install Helm
+  - [x] Install istioctl
+  - [x] Install Tilt
+  - [x] Install ansible
 
-- [ ] **Define a initial project structure**
+- [x] **Define a initial project structure**
 
-- [ ] **Kubernetes configuration**
-  - [ ] Create a local registry
-  - [ ] Create a local cluster 
-  - [ ] Create a Helm Chart to deploy:
-    - [ ] Ingress controller with Nginx
-    - [ ] Network Load Balancer with MetalLB
-    - [ ] Istio
-      - [ ] Configure istio gateway service
-  - [ ] Automate helm deploy with Tilt
+- [x] **Kubernetes configuration**
+  - [x] Create a local registry
+  - [x] Create a local cluster 
+  - [x] Create ansible to deploy:
+    - [x] Ingress controller with Nginx
+    - [x] Network Load Balancer with MetalLB
+    - [x] Istio
 
 - [ ] **Update helm chart with Ory Hydra basic configuration**
 - [ ] **Update helm chart with Ory Oathkeeper basic configuration**

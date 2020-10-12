@@ -1,0 +1,79 @@
+- name: Setup POC environment
+  gather_facts: false
+  hosts: localhost
+  vars:
+    REGISTRY_NAME: kind-registry
+    REGISTRY_PORT: "5000"
+    KIND_NAME: local
+  tasks:
+  
+  - name: Deploys a local docker registry
+    community.general.docker_container:
+      container_default_behavior: compatibility
+      name: "{{ REGISTRY_NAME }}"
+      image: registry:2
+      restart_policy: always
+      exposed_ports:
+      - "{{ REGISTRY_PORT }}"
+
+  - name: Validates if Kind cluster already exists
+    shell: 
+      cmd: |
+        kind get clusters | grep {{ KIND_NAME }} || true
+    register: result
+
+  - name: Deploying a Kind cluster with name {{ KIND_NAME }}
+    when: result.stdout != KIND_NAME
+    shell:
+      cmd: |
+        cat << EOF | kind create cluster --name {{ KIND_NAME }} --config=-
+        kind: Cluster
+        apiVersion: kind.x-k8s.io/v1alpha4
+        containerdConfigPatches:
+        - |-
+          [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:{{ REGISTRY_PORT }}"]
+            endpoint = ["http://{{ REGISTRY_NAME }}:{{ REGISTRY_PORT }}"]
+        nodes:
+        - role: control-plane
+          image: kindest/node:v1.17.11@sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555
+          kubeadmConfigPatches:
+          - |
+            kind: InitConfiguration
+            nodeRegistration:
+              kubeletExtraArgs:
+                node-labels: "ingress-ready=true"
+          extraPortMappings:
+          - containerPort: 80
+            hostPort: 80
+            protocol: TCP
+          - containerPort: 443
+            hostPort: 443
+            protocol: TCP
+        - role: worker
+          image: kindest/node:v1.17.11@sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555
+        EOF
+
+  - name: Change kubernetes context to kind-{{ KIND_NAME }}
+    command: kubectl config use-context kind-{{ KIND_NAME }}
+
+  - name: Deploying Ingress controller to kind-{{ KIND_NAME }}
+    shell: |
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/kind/deploy.yaml
+
+  - name: Deploying LoadBalancer controller to kind-{{ KIND_NAME }}
+    shell: |
+      kubectl get configmap kube-proxy -n kube-system -o yaml | \
+        sed -e "s/strictARP: false/strictARP: true/" | \
+        kubectl apply -f - -n kube-system
+      kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
+      kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+      kubectl create secret generic -n metallb-system memberlist \
+        --from-literal=secretkey="$(openssl rand -base64 128)" || true
+
+  - name: Deploying service mesh
+    shell: |
+      istioctl install -y
+      kubectl label namespace default istio-injection=enabled
+      
+
+
